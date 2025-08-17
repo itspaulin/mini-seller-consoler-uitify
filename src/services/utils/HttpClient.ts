@@ -6,12 +6,6 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-interface HttpRequestOptions {
-  method: string;
-  body?: string;
-  headers: Headers;
-}
-
 class HttpClient {
   private baseUrl: string;
 
