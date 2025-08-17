@@ -9,7 +9,11 @@ export default class APIError extends Error {
   public readonly body: ErrorBody | null;
 
   constructor(response: Response, body: ErrorBody | null = null) {
-    super(body?.error || body?.message || `${response.status} - ${response.statusText}`);
+    super(
+      body?.error ||
+        body?.message ||
+        `${response.status} - ${response.statusText}`
+    );
 
     this.name = "APIError";
     this.response = response;
