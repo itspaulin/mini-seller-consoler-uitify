@@ -14,7 +14,6 @@ function App() {
           <Route path="/leads" element={<LeadsPage />} />
           <Route path="/opportunities" element={<OpportunitiesPage />} />
 
-          {/* Rota 404 */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Layout>

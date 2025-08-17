@@ -19,7 +19,6 @@ export default class APIError extends Error {
     this.response = response;
     this.body = body;
 
-    // Necessário para manter o prototype correto em TS
     Object.setPrototypeOf(this, APIError.prototype);
   }
 
