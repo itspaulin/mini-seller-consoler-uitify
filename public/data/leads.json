@@ -1,0 +1,20 @@
+[
+  {
+    "id": "L001",
+    "name": "João Silva",
+    "company": "TechCorp",
+    "email": "joao@techcorp.com",
+    "source": "website",
+    "score": 85,
+    "status": "new"
+  },
+  {
+    "id": "L002",
+    "name": "Maria Santos",
+    "company": "InnovaCo",
+    "email": "maria@innovaco.com",
+    "source": "linkedin",
+    "score": 92,
+    "status": "qualified"
+  }
+]
