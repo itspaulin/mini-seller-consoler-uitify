@@ -1,20 +1,83 @@
 [
   {
     "id": "L001",
-    "name": "João Silva",
-    "company": "TechCorp",
-    "email": "joao@techcorp.com",
+    "name": "Hobie Jacobsohn",
+    "company": "Quamba",
+    "email": "hjacobsohn0@independent.co.uk",
     "source": "website",
-    "score": 85,
-    "status": "new"
+    "score": 38,
+    "status": "qualified"
   },
   {
     "id": "L002",
-    "name": "Maria Santos",
-    "company": "InnovaCo",
-    "email": "maria@innovaco.com",
+    "name": "Joly Saintpierre",
+    "company": "Quamba",
+    "email": "jsaintpierre1@state.tx.us",
+    "source": "instagram",
+    "score": 29,
+    "status": "new"
+  },
+  {
+    "id": "L003",
+    "name": "Raynor Batsford",
+    "company": "Tazzy",
+    "email": "rbatsford2@jiathis.com",
+    "source": "instagram",
+    "score": 29,
+    "status": "contacted"
+  },
+  {
+    "id": "L004",
+    "name": "Arielle Greedyer",
+    "company": "Tazzy",
+    "email": "agreedyer3@geocities.jp",
     "source": "linkedin",
-    "score": 92,
+    "score": 47,
+    "status": "qualified"
+  },
+  {
+    "id": "L005",
+    "name": "Isabelita Madders",
+    "company": "Dynazzy",
+    "email": "imadders4@techcrunch.com",
+    "source": "facebook",
+    "score": 64,
+    "status": "contacted"
+  },
+  {
+    "id": "L007",
+    "name": "Kippy Eccles",
+    "company": "Dynazzy",
+    "email": "keccles5@engadget.com",
+    "source": "instagram",
+    "score": 24,
+    "status": "contacted"
+  },
+  {
+    "id": "L008",
+    "name": "Fonsie Halloran",
+    "company": "Dabvine",
+    "email": "fhalloran6@printfriendly.com",
+    "source": "instagram",
+    "score": 24,
+    "status": "qualified"
+  },
+  {
+    "id": "L009",
+    "name": "Allen Ennew",
+    "company": "Dabvine",
+    "email": "aennew7@apache.org",
+    "source": "website",
+    "score": 69,
+    "status": "qualified"
+  },
+  {
+    "id": "L010",
+    "name": "George Nutbean",
+    "company": "Rhyzio",
+    "email": "gnutbean8@live.com",
+    "source": "website",
+    "score": 31,
     "status": "qualified"
   }
 ]
