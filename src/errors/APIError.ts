@@ -14,6 +14,8 @@ export default class APIError extends Error {
     this.name = "APIError";
     this.response = response;
     this.body = body;
+
+    Object.setPrototypeOf(this, APIError.prototype);
   }
 
   get status(): number {
