@@ -6,12 +6,6 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-interface HttpRequestOptions {
-  method: string;
-  body?: string;
-  headers: Headers;
-}
-
 class HttpClient {
   private baseUrl: string;
 
@@ -19,49 +13,25 @@ class HttpClient {
     this.baseUrl = baseUrl;
   }
 
-  get<T = any>(
-    path: string,
-    options?: Pick<RequestOptions, "headers">
-  ): Promise<T> {
-    return this.makeRequest<T>(path, {
-      method: "GET",
-      headers: options?.headers,
-    });
+  get<T = any>(path: string, options?: Pick<RequestOptions, "headers">): Promise<T> {
+    return this.makeRequest<T>(path, { method: "GET", headers: options?.headers });
   }
 
   post<T = any>(path: string, options?: RequestOptions): Promise<T> {
-    return this.makeRequest<T>(path, {
-      method: "POST",
-      body: options?.body,
-      headers: options?.headers,
-    });
+    return this.makeRequest<T>(path, { method: "POST", body: options?.body, headers: options?.headers });
   }
 
   put<T = any>(path: string, options?: RequestOptions): Promise<T> {
-    return this.makeRequest<T>(path, {
-      method: "PUT",
-      body: options?.body,
-      headers: options?.headers,
-    });
+    return this.makeRequest<T>(path, { method: "PUT", body: options?.body, headers: options?.headers });
   }
 
-  delete<T = any>(
-    path: string,
-    options?: Pick<RequestOptions, "headers">
-  ): Promise<T> {
-    return this.makeRequest<T>(path, {
-      method: "DELETE",
-      headers: options?.headers,
-    });
+  delete<T = any>(path: string, options?: Pick<RequestOptions, "headers">): Promise<T> {
+    return this.makeRequest<T>(path, { method: "DELETE", headers: options?.headers });
   }
 
   private async makeRequest<T>(
     path: string,
-    options: {
-      method: string;
-      body?: Record<string, any>;
-      headers?: Record<string, string>;
-    }
+    options: { method: string; body?: Record<string, any>; headers?: Record<string, string>; }
   ): Promise<T> {
     await delay(1500);
 
@@ -94,7 +64,7 @@ class HttpClient {
       return responseBody as T;
     }
 
-    throw new APIError(response, responseBody as any);
+    throw new APIError(response, responseBody);
   }
 }
 
