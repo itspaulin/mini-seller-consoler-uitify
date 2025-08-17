@@ -1,39 +1,38 @@
 import delay from "../../utils/delay";
 import APIError from "../../errors/APIError";
 
+interface RequestOptions {
+  body?: Record<string, any>;
+  headers?: Record<string, string>;
+}
+
 class HttpClient {
-  constructor(baseUrl) {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
 
-  get(path, options) {
-    return this.makeRequest(path, { method: "GET", headers: options?.headers });
+  get<T = any>(path: string, options?: Pick<RequestOptions, "headers">): Promise<T> {
+    return this.makeRequest<T>(path, { method: "GET", headers: options?.headers });
   }
 
-  post(path, options) {
-    return this.makeRequest(path, {
-      method: "POST",
-      body: options?.body,
-      headers: options?.headers,
-    });
+  post<T = any>(path: string, options?: RequestOptions): Promise<T> {
+    return this.makeRequest<T>(path, { method: "POST", body: options?.body, headers: options?.headers });
   }
 
-  put(path, options) {
-    return this.makeRequest(path, {
-      method: "PUT",
-      body: options?.body,
-      headers: options?.headers,
-    });
+  put<T = any>(path: string, options?: RequestOptions): Promise<T> {
+    return this.makeRequest<T>(path, { method: "PUT", body: options?.body, headers: options?.headers });
   }
 
-  delete(path, options) {
-    return this.makeRequest(path, {
-      method: "DELETE",
-      headers: options?.headers,
-    });
+  delete<T = any>(path: string, options?: Pick<RequestOptions, "headers">): Promise<T> {
+    return this.makeRequest<T>(path, { method: "DELETE", headers: options?.headers });
   }
 
-  async makeRequest(path, options) {
+  private async makeRequest<T>(
+    path: string,
+    options: { method: string; body?: Record<string, any>; headers?: Record<string, string>; }
+  ): Promise<T> {
     await delay(1500);
 
     const headers = new Headers();
@@ -50,18 +49,19 @@ class HttpClient {
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: options.method,
-      body: JSON.stringify(options.body),
+      body: options.body ? JSON.stringify(options.body) : undefined,
       headers,
     });
 
-    let responseBody = null;
+    let responseBody: T | null = null;
     const contentType = response.headers.get("Content-Type");
+
     if (contentType?.includes("application/json")) {
       responseBody = await response.json();
     }
 
     if (response.ok) {
-      return responseBody;
+      return responseBody as T;
     }
 
     throw new APIError(response, responseBody);
