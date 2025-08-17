@@ -6,6 +6,12 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+interface HttpRequestOptions {
+  method: string;
+  body?: string;
+  headers: Headers;
+}
+
 class HttpClient {
   private baseUrl: string;
 
@@ -88,7 +94,7 @@ class HttpClient {
       return responseBody as T;
     }
 
-    throw new APIError(response, responseBody);
+    throw new APIError(response, responseBody as any);
   }
 }
 
