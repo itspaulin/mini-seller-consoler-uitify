@@ -1,166 +1,179 @@
-import { useState, useEffect, useCallback } from "react";
-import OpportunitiesService, {
+import { useState, useEffect } from "react";
+import OpportunityService, {
   Opportunity,
-  CreateOpportunityData,
   UpdateOpportunityData,
 } from "../services/OpportunityService";
 import { Lead } from "../services/LeadsService";
 
-interface UseOpportunitiesReturn {
-  opportunities: Opportunity[];
-  loading: boolean;
-  error: string | null;
-  addOpportunity: (data: CreateOpportunityData) => Promise<Opportunity>;
-  addOpportunityFromLead: (
-    lead: Lead,
-    additionalData?: Partial<CreateOpportunityData>
-  ) => Promise<Opportunity>;
-  updateOpportunity: (
-    id: string,
-    data: UpdateOpportunityData
-  ) => Promise<Opportunity>;
-  removeOpportunity: (id: string) => Promise<void>;
-  refetch: () => Promise<void>;
-  filteredOpportunities: Opportunity[];
-  setFilters: (filters: OpportunityFilters) => void;
-  filters: OpportunityFilters;
-  getTotalValue: () => number;
-  getWeightedValue: () => number;
-}
-
-interface OpportunityFilters {
-  stage: Opportunity["stage"] | "";
-  sortBy: "amount" | "createdDate";
-  sortOrder: "asc" | "desc";
-}
-
-export function useOpportunities(): UseOpportunitiesReturn {
+export function useOpportunities() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [filteredOpportunities, setFilteredOpportunities] = useState<
+    Opportunity[]
+  >([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<OpportunityFilters>({
-    stage: "",
-    sortBy: "createdDate",
-    sortOrder: "desc",
-  });
+  const [stageFilter, setStageFilter] = useState<Opportunity["stage"] | "">("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const loadOpportunities = useCallback(async (): Promise<void> => {
+  const loadOpportunities = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await OpportunitiesService.getAll();
+      const data = await OpportunityService.getAll();
       setOpportunities(data);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Erro desconhecido";
-      setError(errorMessage);
+      setError(
+        err instanceof Error ? err.message : "Erro ao carregar oportunidades"
+      );
+      console.error("Erro ao carregar oportunidades:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const addOpportunity = async (
-    data: CreateOpportunityData
-  ): Promise<Opportunity> => {
-    try {
-      const newOpportunity = await OpportunitiesService.create(data);
-      setOpportunities((prev) => [newOpportunity, ...prev]);
-      return newOpportunity;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const addOpportunityFromLead = async (
-    lead: Lead,
-    additionalData?: Partial<CreateOpportunityData>
-  ): Promise<Opportunity> => {
-    try {
-      const opportunityData = OpportunitiesService.createFromLead(
-        lead,
-        additionalData
-      );
-      return await addOpportunity(opportunityData);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const updateOpportunity = async (
-    id: string,
-    data: UpdateOpportunityData
-  ): Promise<Opportunity> => {
-    try {
-      setOpportunities((prev) =>
-        prev.map((opp) => (opp.id === id ? { ...opp, ...data } : opp))
-      );
-
-      const updatedOpportunity = await OpportunitiesService.update(id, data);
-
-      setOpportunities((prev) =>
-        prev.map((opp) => (opp.id === id ? updatedOpportunity : opp))
-      );
-
-      return updatedOpportunity;
-    } catch (error) {
-      await loadOpportunities();
-      throw error;
-    }
-  };
-
-  const removeOpportunity = async (id: string): Promise<void> => {
-    try {
-      setOpportunities((prev) => prev.filter((opp) => opp.id !== id));
-
-      await OpportunitiesService.delete(id);
-    } catch (error) {
-      await loadOpportunities();
-      throw error;
-    }
-  };
-
-  const filteredOpportunities = useState(() => {
-    let filtered = opportunities;
-
-    filtered = OpportunitiesService.filterByStage(filtered, filters.stage);
-
-    if (filters.sortBy === "amount") {
-      filtered = OpportunitiesService.sortByAmount(filtered, filters.sortOrder);
-    } else if (filters.sortBy === "createdDate") {
-      filtered = OpportunitiesService.sortByCreatedDate(
-        filtered,
-        filters.sortOrder
-      );
-    }
-
-    return filtered;
-  })[0];
-
-  const getTotalValue = (): number => {
-    return OpportunitiesService.getTotalValue(filteredOpportunities);
-  };
-
-  const getWeightedValue = (): number => {
-    return OpportunitiesService.getWeightedValue(filteredOpportunities);
   };
 
   useEffect(() => {
+    let filtered = [...opportunities];
+
+    if (stageFilter) {
+      filtered = OpportunityService.filterByStage(filtered, stageFilter);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (opp) =>
+          opp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          opp.accountName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    filtered = OpportunityService.sortByCreatedDate(filtered, "desc");
+
+    setFilteredOpportunities(filtered);
+  }, [opportunities, stageFilter, searchTerm]);
+
+  useEffect(() => {
     loadOpportunities();
-  }, [loadOpportunities]);
+  }, []);
+
+  const updateOpportunity = async (id: string, data: UpdateOpportunityData) => {
+    try {
+      const updatedOpportunity = await OpportunityService.update(id, data);
+      setOpportunities((prev) =>
+        prev.map((opp) => (opp.id === id ? updatedOpportunity : opp))
+      );
+      return updatedOpportunity;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Erro ao atualizar oportunidade"
+      );
+      throw err;
+    }
+  };
+
+  const removeOpportunity = async (id: string) => {
+    try {
+      await OpportunityService.delete(id);
+      setOpportunities((prev) => prev.filter((opp) => opp.id !== id));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Erro ao remover oportunidade"
+      );
+      throw err;
+    }
+  };
+
+  const createOpportunity = async (data: any) => {
+    try {
+      const newOpportunity = await OpportunityService.create(data);
+      setOpportunities((prev) => [newOpportunity, ...prev]);
+      return newOpportunity;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Erro ao criar oportunidade"
+      );
+      throw err;
+    }
+  };
+
+  const addOpportunity = async (lead: Lead) => {
+    try {
+      const opportunityData = OpportunityService.createFromLead(lead);
+      const newOpportunity = await OpportunityService.create(opportunityData);
+      setOpportunities((prev) => [newOpportunity, ...prev]);
+      return newOpportunity;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao converter lead em oportunidade"
+      );
+      throw err;
+    }
+  };
+
+  const refreshOpportunities = () => {
+    loadOpportunities();
+  };
+
+  const getTotalValue = () => {
+    return OpportunityService.getTotalValue(filteredOpportunities);
+  };
+
+  const getWeightedValue = () => {
+    return OpportunityService.getWeightedValue(filteredOpportunities);
+  };
+
+  const getStageStats = () => {
+    const stats: Record<string, number> = {
+      qualification: 0,
+      proposal: 0,
+      negotiation: 0,
+      "closed-won": 0,
+      "closed-lost": 0,
+    };
+
+    filteredOpportunities.forEach((opp) => {
+      stats[opp.stage]++;
+    });
+
+    return stats;
+  };
+
+  const getConversionRate = (totalLeads: number) => {
+    return OpportunityService.getConversionRate(
+      totalLeads,
+      opportunities.length
+    );
+  };
 
   return {
     opportunities,
+    filteredOpportunities,
     loading,
     error,
-    addOpportunity,
-    addOpportunityFromLead,
+
+    stageFilter,
+    setStageFilter,
+    searchTerm,
+    setSearchTerm,
+
     updateOpportunity,
     removeOpportunity,
-    refetch: loadOpportunities,
-    filteredOpportunities,
-    setFilters,
-    filters,
+    createOpportunity,
+    addOpportunity,
+    refreshOpportunities,
+
     getTotalValue,
     getWeightedValue,
+    getStageStats,
+    getConversionRate,
+
+    stageLabels: {
+      qualification: "Qualificação",
+      proposal: "Proposta",
+      negotiation: "Negociação",
+      "closed-won": "Fechada - Ganha",
+      "closed-lost": "Fechada - Perdida",
+    },
   };
 }

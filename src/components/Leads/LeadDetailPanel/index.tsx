@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Lead, UpdateLeadData } from "../../../services/LeadsService";
+import OpportunityService from "../../../services/OpportunityService";
 
 interface LeadDetailPanelProps {
   lead: Lead | null;
@@ -19,6 +21,7 @@ export function LeadDetailPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<UpdateLeadData>({});
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   if (!isOpen || !lead) return null;
 
@@ -36,15 +39,25 @@ export function LeadDetailPanel({
   };
 
   const handleConvert = async () => {
-    if (onConvert) {
-      setLoading(true);
-      try {
+    setLoading(true);
+    try {
+      // Se há uma função onConvert personalizada, usa ela
+      if (onConvert) {
         await onConvert(lead);
-      } catch (error) {
-        console.error("Erro ao converter lead:", error);
-      } finally {
-        setLoading(false);
+      } else {
+        // Senão, cria a oportunidade diretamente
+        const opportunityData = OpportunityService.createFromLead(lead);
+        await OpportunityService.create(opportunityData);
       }
+
+      // Fechar o modal
+      onClose();
+      // Navegar para a página de oportunidades com refresh
+      navigate("/opportunities?refresh=true");
+    } catch (error) {
+      console.error("Erro ao converter lead:", error);
+    } finally {
+      setLoading(false);
     }
   };
 

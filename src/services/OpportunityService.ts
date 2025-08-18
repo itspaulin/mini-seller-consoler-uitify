@@ -38,13 +38,38 @@ export interface UpdateOpportunityData {
 
 class OpportunitiesService {
   private httpClient: HttpClient;
+  private readonly STORAGE_KEY = "opportunities";
 
   constructor() {
     this.httpClient = new HttpClient("");
   }
 
+  private getOpportunitiesFromStorage(): Opportunity[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error("Erro ao carregar oportunidades do localStorage:", error);
+      return [];
+    }
+  }
+
+  private saveOpportunitiesToStorage(opportunities: Opportunity[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(opportunities));
+    } catch (error) {
+      console.error("Erro ao salvar oportunidades no localStorage:", error);
+    }
+  }
+
   async getAll(): Promise<Opportunity[]> {
-    return [];
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return this.getOpportunitiesFromStorage();
+    } catch (error) {
+      console.error("Erro ao buscar oportunidades:", error);
+      return [];
+    }
   }
 
   async getById(id: string): Promise<Opportunity | null> {
@@ -54,7 +79,7 @@ class OpportunitiesService {
 
   async create(data: CreateOpportunityData): Promise<Opportunity> {
     const opportunity: Opportunity = {
-      id: `OPP${Date.now()}`,
+      id: `OPP${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
       name: data.name,
       stage: data.stage,
       amount: data.amount,
@@ -65,21 +90,64 @@ class OpportunitiesService {
       probability: data.probability || this.getDefaultProbability(data.stage),
     };
 
-    await this.httpClient.post<Opportunity>("/api/opportunities", {
-      body: opportunity,
-    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    return opportunity;
+      const opportunities = this.getOpportunitiesFromStorage();
+      opportunities.push(opportunity);
+      this.saveOpportunitiesToStorage(opportunities);
+
+      console.log("Oportunidade criada:", opportunity);
+      return opportunity;
+    } catch (error) {
+      console.error("Erro ao criar oportunidade:", error);
+      throw error;
+    }
   }
 
   async update(id: string, data: UpdateOpportunityData): Promise<Opportunity> {
-    return this.httpClient.put<Opportunity>(`/api/opportunities/${id}`, {
-      body: data,
-    });
+    try {
+      const opportunities = this.getOpportunitiesFromStorage();
+      const index = opportunities.findIndex((opp) => opp.id === id);
+
+      if (index === -1) {
+        throw new Error(`Oportunidade com ID ${id} não encontrada`);
+      }
+
+      const updatedOpportunity = {
+        ...opportunities[index],
+        ...data,
+
+        probability: data.stage
+          ? data.probability || this.getDefaultProbability(data.stage)
+          : opportunities[index].probability,
+      };
+
+      opportunities[index] = updatedOpportunity;
+      this.saveOpportunitiesToStorage(opportunities);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      return updatedOpportunity;
+    } catch (error) {
+      console.error("Erro ao atualizar oportunidade:", error);
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {
-    return this.httpClient.delete(`/api/opportunities/${id}`);
+    try {
+      const opportunities = this.getOpportunitiesFromStorage();
+      const filteredOpportunities = opportunities.filter(
+        (opp) => opp.id !== id
+      );
+      this.saveOpportunitiesToStorage(filteredOpportunities);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error("Erro ao deletar oportunidade:", error);
+      throw error;
+    }
   }
 
   createFromLead(
@@ -180,6 +248,19 @@ class OpportunitiesService {
   getConversionRate(totalLeads: number, totalOpportunities: number): number {
     if (totalLeads === 0) return 0;
     return (totalOpportunities / totalLeads) * 100;
+  }
+
+  async clearAll(): Promise<void> {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (error) {
+      console.error("Erro ao limpar oportunidades:", error);
+    }
+  }
+
+  async hasOpportunities(): Promise<boolean> {
+    const opportunities = await this.getAll();
+    return opportunities.length > 0;
   }
 }
 
