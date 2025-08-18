@@ -1,188 +1,146 @@
-import { useState, useEffect } from "react";
-import { useOpportunities } from "../../hooks/useOpportunities";
-import { OpportunitiesTable } from "../../components/Opportunities";
-import { EmptyState } from "../../ui/EmptyState";
-import { LoadingSpinner } from "../../ui/LoadingSpinner";
-import { Target, RefreshCw } from "lucide-react";
 import { Opportunity } from "../../services/OpportunityService";
 
-export function OpportunitiesPage() {
-  const {
-    filteredOpportunities,
-    loading,
-    error,
-    updateOpportunity,
-    removeOpportunity,
-    getTotalValue,
-    getWeightedValue,
-    refreshOpportunities,
-    stageFilter,
-    setStageFilter,
-    searchTerm,
-    setSearchTerm,
-  } = useOpportunities();
+interface OpportunitiesTableProps {
+  opportunities: Opportunity[];
+  onOpportunityClick?: (opportunityId: string) => void;
+  selectedOpportunityId?: string;
+}
 
-  const [selectedOpportunity, setSelectedOpportunity] =
-    useState<Opportunity | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+export function OpportunitiesTable({
+  opportunities,
+  onOpportunityClick,
+  selectedOpportunityId,
+}: OpportunitiesTableProps) {
+  const getStageBadge = (stage: Opportunity["stage"]) => {
+    const stageStyles = {
+      qualification: "bg-blue-100 text-blue-800",
+      proposal: "bg-purple-100 text-purple-800",
+      negotiation: "bg-orange-100 text-orange-800",
+      "closed-won": "bg-green-100 text-green-800",
+      "closed-lost": "bg-red-100 text-red-800",
+    };
 
-  // Força um refresh quando a página é visitada
-  useEffect(() => {
-    // Verifica se chegou de uma conversão recente (pode ser implementado via query params)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("refresh") === "true") {
-      refreshOpportunities();
-      // Remove o parâmetro da URL
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, [refreshOpportunities]);
+    const stageLabels = {
+      qualification: "Qualificação",
+      proposal: "Proposta",
+      negotiation: "Negociação",
+      "closed-won": "Fechada - Ganha",
+      "closed-lost": "Fechada - Perdida",
+    };
 
-  const handleOpportunityClick = (opportunityId: string) => {
-    const opportunity =
-      filteredOpportunities.find((o) => o.id === opportunityId) || null;
-    setSelectedOpportunity(opportunity);
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refreshOpportunities();
-    setRefreshing(false);
-  };
-
-  if (loading && !refreshing) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
-          <h2 className="text-xl font-semibold mb-2">
-            Erro ao carregar oportunidades
-          </h2>
-          <p className="mb-4">{error}</p>
-          <button
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      </div>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${stageStyles[stage]}`}
+      >
+        {stageLabels[stage]}
+      </span>
     );
-  }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const getProbabilityColor = (probability: number) => {
+    if (probability >= 75) return "text-green-600 font-semibold";
+    if (probability >= 50) return "text-yellow-600 font-semibold";
+    if (probability >= 25) return "text-orange-600 font-semibold";
+    return "text-red-600 font-semibold";
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Oportunidades</h2>
-          <p className="text-gray-600 mt-2">
-            Acompanhe suas oportunidades de negócio
-          </p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-          />
-          {refreshing ? "Atualizando..." : "Atualizar"}
-        </button>
-      </div>
-
-      {filteredOpportunities.length > 0 && (
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar
-              </label>
-              <input
-                type="text"
-                placeholder="Nome da oportunidade ou conta..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filtrar por Estágio
-              </label>
-              <select
-                value={stageFilter}
-                onChange={(e) =>
-                  setStageFilter(e.target.value as Opportunity["stage"] | "")
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Nome
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Conta
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Valor
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Probabilidade
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estágio
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Data Criação
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Data Fechamento
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {opportunities.map((opportunity) => (
+              <tr
+                key={opportunity.id}
+                onClick={() => onOpportunityClick?.(opportunity.id)}
+                className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                  selectedOpportunityId === opportunity.id ? "bg-blue-50" : ""
+                }`}
               >
-                <option value="">Todos os estágios</option>
-                <option value="qualification">Qualificação</option>
-                <option value="proposal">Proposta</option>
-                <option value="negotiation">Negociação</option>
-                <option value="closed-won">Fechada - Ganha</option>
-                <option value="closed-lost">Fechada - Perdida</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {filteredOpportunities.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-500">
-              Total de Oportunidades
-            </h3>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
-              {filteredOpportunities.length}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-500">Valor Total</h3>
-            <p className="text-2xl font-bold text-green-600 mt-2">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(getTotalValue())}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-500">
-              Valor Ponderado
-            </h3>
-            <p className="text-2xl font-bold text-blue-600 mt-2">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(getWeightedValue())}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {filteredOpportunities.length === 0 ? (
-        <EmptyState
-          icon={Target}
-          title="Nenhuma oportunidade encontrada"
-          description={
-            searchTerm || stageFilter
-              ? "Tente ajustar os filtros ou criar uma nova oportunidade."
-              : "Converta seus leads qualificados em oportunidades para começar."
-          }
-        />
-      ) : (
-        <div className="bg-white shadow rounded-lg">
-          <OpportunitiesTable
-            opportunities={filteredOpportunities}
-            onOpportunityClick={handleOpportunityClick}
-            selectedOpportunityId={selectedOpportunity?.id}
-          />
-        </div>
-      )}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="font-medium text-gray-900">
+                    {opportunity.name}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-gray-900">{opportunity.accountName}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="font-semibold text-gray-900">
+                    {opportunity.amount
+                      ? formatCurrency(opportunity.amount)
+                      : "-"}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div
+                    className={getProbabilityColor(
+                      opportunity.probability || 0
+                    )}
+                  >
+                    {opportunity.probability || 0}%
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStageBadge(opportunity.stage)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-gray-600">
+                    {formatDate(opportunity.createdAt)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-gray-600">
+                    {opportunity.closeDate
+                      ? formatDate(opportunity.closeDate)
+                      : "-"}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
