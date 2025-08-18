@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLeads } from "../../hooks/useLeads";
 import { useOpportunities } from "../../hooks/useOpportunities";
 import { useUrlParams } from "../../hooks/useUrlParams";
-import { LeadsFilters } from "../../components/leads/LeadsFilters";
+import { LeadsFilters } from "../../components/Leads/LeadsFilters";
 import { LeadsTable } from "../../components/Leads/LeadsTable";
 import { LeadDetailPanel } from "../../components/Leads/LeadDetailPanel";
 import { LoadingSpinner } from "../../ui/LoadingSpinner";

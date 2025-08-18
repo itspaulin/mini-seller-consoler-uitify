@@ -1,5 +1,28 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Lead, UpdateLeadData } from "../../../services/LeadsService";
+import OpportunityService from "../../../services/OpportunityService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { X, Edit, Save, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface LeadDetailPanelProps {
   lead: Lead | null;
@@ -19,8 +42,9 @@ export function LeadDetailPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<UpdateLeadData>({});
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  if (!isOpen || !lead) return null;
+  if (!lead) return null;
 
   const handleSave = async () => {
     setLoading(true);
@@ -36,173 +60,210 @@ export function LeadDetailPanel({
   };
 
   const handleConvert = async () => {
-    if (onConvert) {
-      setLoading(true);
-      try {
+    setLoading(true);
+    try {
+      if (onConvert) {
         await onConvert(lead);
-      } catch (error) {
-        console.error("Erro ao converter lead:", error);
-      } finally {
-        setLoading(false);
+      } else {
+        const opportunityData = OpportunityService.createFromLead(lead);
+        await OpportunityService.create(opportunityData);
       }
+
+      onClose();
+
+      navigate("/opportunities?refresh=true");
+    } catch (error) {
+      console.error("Erro ao converter lead:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const getStatusBadge = (status: Lead["status"]) => {
+    const statusConfig = {
+      new: {
+        label: "Novo",
+        variant: "default" as const,
+        className: "bg-blue-100 text-blue-800 hover:bg-blue-100",
+      },
+      contacted: {
+        label: "Contatado",
+        variant: "secondary" as const,
+        className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+      },
+      qualified: {
+        label: "Qualificado",
+        variant: "default" as const,
+        className: "bg-green-100 text-green-800 hover:bg-green-100",
+      },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
             Detalhes do Lead
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
-          >
-            ×
-          </button>
-        </div>
+          </DialogTitle>
+          <DialogDescription>
+            Visualize e edite as informações do lead
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Content */}
-        <div className="px-6 py-4 space-y-4">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Nome
-              </label>
-              <div className="mt-1 text-sm text-gray-900">{lead.name}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Empresa
-              </label>
-              <div className="mt-1 text-sm text-gray-900">{lead.company}</div>
-            </div>
-          </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Nome</Label>
+                  <div className="text-sm p-2 bg-muted rounded-md">
+                    {lead.name}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Empresa</Label>
+                  <div className="text-sm p-2 bg-muted rounded-md">
+                    {lead.company}
+                  </div>
+                </div>
+              </div>
 
-          {/* Email - Editable */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            {isEditing ? (
-              <input
-                type="email"
-                value={editData.email ?? lead.email}
-                onChange={(e) =>
-                  setEditData({ ...editData, email: e.target.value })
-                }
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            ) : (
-              <div className="mt-1 text-sm text-gray-900">{lead.email}</div>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={editData.email ?? lead.email}
+                    onChange={(e) =>
+                      setEditData({ ...editData, email: e.target.value })
+                    }
+                    placeholder="email@exemplo.com"
+                  />
+                ) : (
+                  <div className="text-sm p-2 bg-muted rounded-md">
+                    {lead.email}
+                  </div>
+                )}
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Origem
-              </label>
-              <div className="mt-1 text-sm text-gray-900">{lead.source}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Score
-              </label>
-              <div className="mt-1 text-sm font-semibold text-gray-900">
-                {lead.score}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Origem</Label>
+                  <div className="text-sm p-2 bg-muted rounded-md">
+                    {lead.source}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Score</Label>
+                  <div className="text-sm font-semibold p-2 bg-muted rounded-md">
+                    {lead.score}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Status</Label>
+                {isEditing ? (
+                  <Select
+                    value={editData.status ?? lead.status}
+                    onValueChange={(value) =>
+                      setEditData({
+                        ...editData,
+                        status: value as Lead["status"],
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Novo</SelectItem>
+                      <SelectItem value="contacted">Contatado</SelectItem>
+                      <SelectItem value="qualified">Qualificado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex">{getStatusBadge(lead.status)}</div>
+                )}
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Status - Editable */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Status
-            </label>
-            {isEditing ? (
-              <select
-                value={editData.status ?? lead.status}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    status: e.target.value as Lead["status"],
-                  })
-                }
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="new">Novo</option>
-                <option value="contacted">Contatado</option>
-                <option value="qualified">Qualificado</option>
-              </select>
-            ) : (
-              <div className="mt-1">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    lead.status === "new"
-                      ? "bg-blue-100 text-blue-800"
-                      : lead.status === "contacted"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                  }`}
-                >
-                  {lead.status === "new"
-                    ? "Novo"
-                    : lead.status === "contacted"
-                    ? "Contatado"
-                    : "Qualificado"}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
-          <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4">
+          <div className="flex gap-2">
             {isEditing ? (
               <>
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? "Salvando..." : "Salvar"}
-                </button>
-                <button
+                <Button onClick={handleSave} disabled={loading} size="sm">
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Salvar
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setIsEditing(false);
                     setEditData({});
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  size="sm"
+                  className="cursor-pointer"
                 >
+                  <X className="mr-2 h-4 w-4 cursor-pointer" />
                   Cancelar
-                </button>
+                </Button>
               </>
             ) : (
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                size="sm"
+                className="cursor-pointer"
               >
+                <Edit className="mr-2 h-4 w-4 " />
                 Editar
-              </button>
+              </Button>
             )}
           </div>
 
           {onConvert && !isEditing && (
-            <button
+            <Button
               onClick={handleConvert}
               disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700 cursor-pointer"
+              size="sm"
             >
-              {loading ? "Convertendo..." : "Converter em Oportunidade"}
-            </button>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Convertendo...
+                </>
+              ) : (
+                "Converter em Oportunidade"
+              )}
+            </Button>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

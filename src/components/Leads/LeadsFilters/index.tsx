@@ -15,7 +15,6 @@ export function LeadsFilters({ filters, onFiltersChange }: LeadsFiltersProps) {
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border">
       <div className="flex flex-wrap gap-4">
-        {/* Search Input */}
         <div className="flex-1 min-w-64">
           <input
             type="text"
@@ -26,7 +25,6 @@ export function LeadsFilters({ filters, onFiltersChange }: LeadsFiltersProps) {
           />
         </div>
 
-        {/* Status Filter */}
         <div className="min-w-40">
           <select
             value={status}
@@ -40,7 +38,6 @@ export function LeadsFilters({ filters, onFiltersChange }: LeadsFiltersProps) {
           </select>
         </div>
 
-        {/* Sort By */}
         <div className="min-w-32">
           <select
             value={sortBy}
@@ -52,7 +49,6 @@ export function LeadsFilters({ filters, onFiltersChange }: LeadsFiltersProps) {
           </select>
         </div>
 
-        {/* Sort Order */}
         <div className="min-w-32">
           <select
             value={sortOrder}
